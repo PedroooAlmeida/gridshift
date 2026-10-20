@@ -7,7 +7,7 @@ name = "gridshift"
 version = "0.1.0"
 description = "Factory scheduling with verifiable energy economics"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["ortools==9.15.6755"]
 
 [tool.setuptools.packages.find]
 include = ["gridshift*"]
