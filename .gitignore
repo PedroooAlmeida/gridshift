@@ -3,3 +3,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .DS_Store
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+evals/llm-local.json

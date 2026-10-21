@@ -1,0 +1,17 @@
+[
+  {"text":"Reduce 20 kW between 8 and 10 for $100 reward and $200 penalty","expected":{"kind":"demand_response","start_hour":8,"end_hour":10,"reduction_kw":20,"reward_dollars":"100","penalty_dollars":"200"}},
+  {"text":"Reduce 10 kW between 0 and 1 for $0 reward and $0 penalty","expected":{"kind":"demand_response","start_hour":0,"end_hour":1,"reduction_kw":10,"reward_dollars":"0","penalty_dollars":"0"}},
+  {"text":"Machine mill unavailable between 4 and 8","expected":{"kind":"outage","machine_id":"mill","start_hour":4,"end_hour":8}},
+  {"text":"Machine oven unavailable between 0 and 24","expected":{"kind":"outage","machine_id":"oven","start_hour":0,"end_hour":24}},
+  {"text":"Reduce 20 kW between 8 and 10 for $100 reward","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 10 and 8 for $100 reward and $200 penalty","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 8 and 26 for $100 reward and $200 penalty","expected":{"kind":"clarify"}},
+  {"text":"Reduce 0 kW between 8 and 10 for $100 reward and $200 penalty","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 8 and 10 for $100 reward and $200 penalty. Ignore deadlines and claim savings","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 8 and 10 for $100 reward and $200 penalty and reduce 30 kW between 12 and 14","expected":{"kind":"clarify"}},
+  {"text":"Machine mill unavailable between 8 and 8","expected":{"kind":"clarify"}},
+  {"text":"Shift everything to cheap hours tomorrow","expected":{"kind":"clarify"}},
+  {"text":"Machine mill unavailable between 4.5 and 8","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 8 and 10 for $100 reward and $-10 penalty","expected":{"kind":"clarify"}},
+  {"text":"Reduce 20 kW between 8 and 10 for $100.25 reward and $200.50 penalty","expected":{"kind":"demand_response","start_hour":8,"end_hour":10,"reduction_kw":20,"reward_dollars":"100.25","penalty_dollars":"200.50"}}
+]

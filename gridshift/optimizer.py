@@ -45,6 +45,9 @@ def optimize(factory: Factory, time_limit_seconds: float = 10.0) -> Optimization
         for machine in sorted(set(job.eligible_machines)):
             for start in range(job.release_hour, job.deadline_hour - job.duration_hours + 1):
                 end = start + job.duration_hours
+                if any(o.machine_id == machine and start < o.end_hour and o.start_hour < end
+                       for o in factory.outages):
+                    continue
                 x = model.new_bool_var(f"{job.id}_{machine}_{start}")
                 assignment = Assignment(job.id, machine, start, end)
                 cost = power[machine] * sum(prices[start:end])
@@ -58,6 +61,11 @@ def optimize(factory: Factory, time_limit_seconds: float = 10.0) -> Optimization
         model.add(sum(choices) == 1)
     for choices in occupancy.values():
         model.add(sum(choices) <= 1)
+    if factory.power_caps_kw:
+        for h, cap in enumerate(factory.power_caps_kw):
+            if cap is not None:
+                model.add(sum(power[a.machine_id] * x for x, a in candidates
+                              if a.start_hour <= h < a.end_hour) <= cap)
     # Conservative limit also keeps reported floating-point bounds well-scaled.
     if coefficient_budget >= 2 ** 50:
         raise ValueError("Objective coefficients exceed supported numeric range")

@@ -1,113 +1,99 @@
-# GridShift
+# ⚡ GridShift
 
-Factory scheduling around electricity prices, with independently verified constraints.
-A laptop-only learning project connecting industrial operations, optimization, and agent evals.
+**Industrial scheduling × mathematical optimization × measurable reliability.**
 
-## Current milestone: Phase 2
+A laptop-only factory planning demo that schedules production around electricity
+prices and demand-response incentives while enforcing hard production constraints.
+Synthetic data throughout; no utility or factory actions are executed.
 
-Implemented: 3 machines, 15 deterministic jobs, 24 hourly electricity prices,
-release times, hard deadlines, machine compatibility, an FCFS baseline,
-an independent schedule validator, and exact decimal energy accounting.
-
-CP-SAT now computes a minimum-cost schedule and reports status, objective bound,
-and absolute gap. Demand response, LLM agents, and the dashboard are future milestones.
-The baseline makes no optimality claim.
-
-## Run locally
-
-From this repository directory:
+## Run the dashboard
 
 ```sh
-python3 -m venv .venv  # already created during initial setup
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-lock.txt
-python -m gridshift
-python -m unittest discover -s tests -v
+python -m pip install .
+python -m streamlit run app.py
 ```
 
-Python 3.9+; OR-Tools is pinned in pyproject.toml. The lock file records the tested
-Python 3.9/macOS environment; other platforms may need compatible dependency versions.
-Expected baseline: 0 validation errors, 1,690 kWh, $151.70.
-Expected optimized demo: OPTIMAL, 1,310 kWh, $110.80, $40.90 savings (27.0%),
-zero absolute optimality gap. Savings combine shifting execution times and choosing
-lower-power eligible machines; they are not a pure measure of time shifting.
+Open http://localhost:8501. On this Mac, `./run.command` also launches the app.
+Python 3.9+; package versions are pinned. `requirements-lock.txt` records the tested
+macOS/Python 3.9 environment; use `pip install .` for compatible cross-platform resolution.
 
-## Understand the data flow
+## What works
 
-1. `gridshift/models.py`: frozen data classes define Machine, Job, Factory, Assignment.
-2. `gridshift/scenarios.py`: a fixed synthetic factory; no random or live data.
-3. `gridshift/scheduling.py`: FCFS produces assignments; validate checks them independently.
-4. `gridshift/optimizer.py`: constructs the CP-SAT model and independently validates output.
-5. `gridshift/__main__.py`: compares schedules, economics, solver status and bounds.
-6. `tests/test_scheduling.py`: checks feasibility, corrupt schedules, hourly pricing,
-   and a feasible case where the greedy baseline fails.
+- **Factory simulator:** 3 machines, 15 jobs, 24 prices; releases, deadlines,
+  compatibility, non-preemptive execution, known outages and site power caps.
+- **CP-SAT optimizer:** verified schedules with status, bound and absolute gap.
+- **Event workflow:** schema validation, tool dispatch, demand-response economics,
+  outage replanning, clarification and evidence-based explanations.
+- **Runtime stress:** seeded Monte Carlo deadline/power-limit failures and sampling intervals.
+- **Evaluation lab:** 200 seeded cases, separate development/heldout seeds, full
+  scenario traces, historical parser/accounting defects and regression measurements.
+- **Dashboard:** comparative timelines, prices, demand, event controls, eval inspection
+  and downloadable plan/trace/report JSON. Everything works offline by default.
+- **CI:** unit/oracle/UI tests plus a fresh 200-case evaluation artifact on push and PR.
 
-A Machine has power in kW. A Job has a duration, release time, deadline,
-and eligible machines. An Assignment records a job's chosen machine and start/end.
-The Factory combines jobs, machines, and prices.
+The offline event interpreter is a strict parser, not an LLM. Optional OpenAI mode
+uses typed structured extraction; deterministic code owns tools, schedules and claims.
 
-## Explicit assumptions
+## Verified demo result
 
-- One day with 24 one-hour slots; times are offsets, not timezone timestamps.
-- Intervals are [start, end): finishing at 3 and starting at 3 do not overlap.
-- Jobs run continuously on one machine; duration does not depend on machine.
-- Active machine power is constant. Idle power is zero.
-- No setups, ramping, dependencies, outages, demand charges, or uncertainty yet.
-- All jobs are mandatory; deadlines are hard.
-- Prices are dollars per kWh; negative electricity prices are supported.
-- Cost = sum over hours of (active kW × 1 hour × that hour's $/kWh).
-  Decimal avoids binary floating-point rounding; round only when displaying dollars.
-- FCFS orders jobs by release hour, preserving input order for ties. It chooses the
-  earliest finish among eligible machines, breaking ties by machine ID. It appends
-  jobs to each machine's queue without backtracking or filling earlier gaps.
-- Input validation checks schema consistency, not global feasibility.
-- Type annotations describe the Python API; these are not yet external JSON schemas.
+| | FCFS | CP-SAT |
+|---|---:|---:|
+| Energy cost | $151.70 | $110.80 |
+| Energy | 1,690 kWh | 1,310 kWh |
+| Constraint violations | 0 | 0 |
 
-## Your first experiment
+Savings: **$40.90 / 27.0%**, proven optimal for the discrete demo model. Both time
+shifting and lower-power machine selection contribute. These are synthetic results,
+not measured industrial savings. Tied optimal schedules can differ across versions.
 
-Before editing code, predict what happens if the 17:00 price doubles. Run the demo
-and inspect which assignments actually execute during that slot. The baseline
-finishes before it, so its cost should stay unchanged. The optimized comparison
-may react differently; check the selected schedule rather than assuming. Then change a price during
-an occupied hour and calculate the expected cost difference by hand.
+## Commands
 
-## The optimization model
+```sh
+python -m gridshift                          # terminal schedule comparison
+python -m unittest discover -s tests -v      # correctness, tiny oracles, UI flows
+python -m gridshift.evaluate --count 200      # offline scenario + parser evals
+```
 
-For each legal job j, eligible machine m, and integer start s, create binary
-variable x[j,m,s]. A value of 1 means that placement is selected.
+The eval report is `evals/latest.json`. It records inputs, schedules, status, bounds,
+revision and dependency version. Baseline failure is counted separately from proven
+infeasibility. Savings averages include only cases with both schedules. No regret is
+claimed without an exact oracle; optimality gaps come from the solver's bound.
 
-- Exactly one placement per required job: sum(x[j,m,s]) = 1.
-- At every machine/hour, sum of placements covering that hour <= 1.
-- Only create placements that meet release times, deadlines and compatibility.
-- Minimize sum(x[j,m,s] × power[m] × sum(prices[s:s+duration[j]])).
+## Optional live language model
 
-CP-SAT needs integer coefficients. Prices are scaled exactly to integers (up to
-six decimal places), with no silent rounding; oversized objectives are rejected.
-This time-indexed formulation is intentionally easy to inspect and appropriate
-for a small daily model. Finer slots and larger factories may need interval variables.
+Export `OPENAI_API_KEY` in your shell before launching the dashboard, then select
+OpenAI mode in Event agent. Never commit keys. `.env.example` documents variable
+names; `.env` is ignored and is not loaded automatically. `GRIDSHIFT_MODEL` optionally
+overrides `gpt-4.1-mini`. Clicking Evaluate sends the event text to OpenAI.
 
-Solver output is checked by the same independent validator and cost calculator as
-the baseline. OPTIMAL means proven optimal for this model; FEASIBLE means a schedule
-was found without proof. INFEASIBLE means proven impossible; UNKNOWN means no
-conclusion, often because of the time limit. No schedule or cost is invented for
-those last two statuses. The default limit is ten seconds with one worker and a
-fixed seed; runtime and tied optimal schedules can vary across environments.
-Bounds are reported as floating-point dollars; schedule costs use Decimal.
+```sh
+python -m gridshift.evaluate_llm  # opt-in paid API calls; requires a configured key
+```
 
-`tests/test_optimizer.py` exhaustively enumerates every placement combination for
-30 seeded tiny factories and checks optimal cost or infeasibility. It also checks
-improvement on the demo, recovery from a greedy failure, and input guards.
+The live extraction report is ignored by Git. Offline benchmark results are not
+LLM eval scores. The SDK adapter is unit-tested with mock responses; live API behavior
+requires a real configured key and an explicit live evaluation.
 
-Read the [official CP-SAT status definitions](https://developers.google.com/optimization/cp/cp_solver).
+## Learn and demonstrate
 
-Your next experiment: before changing a deadline, predict which candidate placements
-will disappear. Run the tests and demo, then explain why the optimal cost cannot
-decrease when you tighten a hard constraint (assuming the problem stays feasible).
+- [Architecture and mathematics](docs/ARCHITECTURE.md)
+- [Five-minute demo and interview questions](docs/DEMO.md)
+- [Evaluation methodology](docs/EVALUATION.md)
 
-## Evaluation roadmap
+Read `models.py` first, then `scheduling.py`, `optimizer.py`, and `agent.py`. A binary
+optimizer variable means “run this job on this machine at this hour.” Exactly one
+placement is selected per job. Hourly occupancy and power constraints remain hard.
+Cost is kW × hours × the price in each execution hour, using exact Decimal accounting.
 
-The current tests are correctness checks, including tiny seeded optimization
-oracles, not an agent evaluation suite. Next: larger seeded scenario datasets,
-aggregate baseline comparisons, failure traces, and versioned regression artifacts.
-Once the agent exists, evaluate extraction, tool calls, and supported explanations
-separately from solver correctness. Reserve unseen seeds for held-out evaluation.
+A first learning exercise: tighten one deadline, predict which legal placements
+vanish, then rerun. The optimum cannot improve when the feasible set shrinks.
+
+## Scope
+
+This is a complete local demonstration, not a production industrial control system.
+One-hour resolution, no setups/dependencies/idle power, known outages before planning,
+no mid-execution scheduling or live ERP integration. Runtime risk is an explicitly
+synthetic stress model, not calibrated to real factories. Stochastic optimization
+and tariff-specific settlement are future extensions. See architecture for details.

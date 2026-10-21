@@ -16,13 +16,28 @@ def fcfs(factory: Factory) -> Tuple[Assignment, ...]:
     available = {m.id: 0 for m in factory.machines}
     result = []
     for job in sorted(factory.jobs, key=lambda j: j.release_hour):
-        end, machine, start = min(
-            (max(available[m], job.release_hour) + job.duration_hours,
-             m, max(available[m], job.release_hour))
-            for m in job.eligible_machines
-        )
-        if end > job.deadline_hour:
+        options = []
+        load = [0] * len(factory.prices_per_kwh)
+        powers = {m.id: m.power_kw for m in factory.machines}
+        for a in result:
+            for h in range(a.start_hour, a.end_hour):
+                load[h] += powers[a.machine_id]
+        for m in job.eligible_machines:
+            for start in range(max(available[m], job.release_hour),
+                               job.deadline_hour - job.duration_hours + 1):
+                end = start + job.duration_hours
+                if any(o.machine_id == m and start < o.end_hour and o.start_hour < end
+                       for o in factory.outages):
+                    continue
+                if factory.power_caps_kw and any(
+                        factory.power_caps_kw[h] is not None and
+                        load[h] + powers[m] > factory.power_caps_kw[h] for h in range(start, end)):
+                    continue
+                options.append((end, m, start))
+                break
+        if not options:
             raise BaselineFailure("Baseline could not place " + job.id)
+        end, machine, start = min(options)
         result.append(Assignment(job.id, machine, start, end))
         available[machine] = end
     return tuple(result)
@@ -54,6 +69,9 @@ def validate(factory: Factory, schedule: Sequence[Assignment]) -> Tuple[str, ...
             errors.append("outside horizon: " + a.job_id)
         if a.start_hour < j.release_hour or a.end_hour > j.deadline_hour:
             errors.append("release/deadline violation: " + a.job_id)
+        if any(o.machine_id == a.machine_id and a.start_hour < o.end_hour
+               and o.start_hour < a.end_hour for o in factory.outages):
+            errors.append("outage violation: " + a.job_id)
         valid_intervals.append(a)
     for job_id in sorted(set(jobs) - seen):
         errors.append("missing job: " + job_id)
@@ -61,6 +79,13 @@ def validate(factory: Factory, schedule: Sequence[Assignment]) -> Tuple[str, ...
         for b in valid_intervals[i + 1:]:
             if a.machine_id == b.machine_id and max(a.start_hour, b.start_hour) < min(a.end_hour, b.end_hour):
                 errors.append("machine overlap: " + a.job_id + "/" + b.job_id)
+    if factory.power_caps_kw:
+        powers = {m.id: m.power_kw for m in factory.machines}
+        for h, cap in enumerate(factory.power_caps_kw):
+            load = sum(powers.get(a.machine_id, 0) for a in valid_intervals
+                       if a.start_hour <= h < a.end_hour)
+            if cap is not None and load > cap:
+                errors.append("power cap violation at hour " + str(h))
     return tuple(errors)
 
 

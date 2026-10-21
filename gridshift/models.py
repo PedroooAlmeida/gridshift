@@ -1,7 +1,7 @@
 """Hours are integer boundaries; execution intervals are [start, end)."""
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -20,10 +20,19 @@ class Job:
 
 
 @dataclass(frozen=True)
+class Outage:
+    machine_id: str
+    start_hour: int
+    end_hour: int
+
+
+@dataclass(frozen=True)
 class Factory:
     machines: Tuple[Machine, ...]
     jobs: Tuple[Job, ...]
     prices_per_kwh: Tuple[Decimal, ...]
+    outages: Tuple[Outage, ...] = ()
+    power_caps_kw: Tuple[Optional[int], ...] = ()
 
     def __post_init__(self):
         machine_ids = [m.id for m in self.machines]
@@ -45,6 +54,14 @@ class Factory:
                 raise ValueError("Invalid job time window")
             if not j.eligible_machines or not set(j.eligible_machines) <= set(machine_ids):
                 raise ValueError("Every job needs known eligible machines")
+        for outage in self.outages:
+            if (outage.machine_id not in machine_ids or
+                    type(outage.start_hour) is not int or type(outage.end_hour) is not int or
+                    not 0 <= outage.start_hour < outage.end_hour <= len(self.prices_per_kwh)):
+                raise ValueError("Invalid machine outage")
+        if self.power_caps_kw and (len(self.power_caps_kw) != len(self.prices_per_kwh) or
+                any(c is not None and (type(c) is not int or c < 0) for c in self.power_caps_kw)):
+            raise ValueError("Power caps must be nonnegative integers for every hour")
         # A well-formed input may still be infeasible; the scheduler must report that.
 
 
