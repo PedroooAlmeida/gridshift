@@ -1,6 +1,6 @@
 # ⚡ GridShift
 
-**Industrial scheduling × mathematical optimization × measurable reliability.**
+using industrial scheduling × mathematical optimization × measurable reliability
 
 A laptop-only factory planning demo that schedules production around electricity
 prices and demand-response incentives while enforcing hard production constraints.
