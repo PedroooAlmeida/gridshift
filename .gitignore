@@ -8,3 +8,5 @@ __pycache__/
 !.env.example
 .streamlit/secrets.toml
 evals/llm-local.json
+build/
+dist/

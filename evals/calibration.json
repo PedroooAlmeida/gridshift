@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "data_source": "synthetic",
+  "regimes": 18,
+  "training_observations": 7200,
+  "heldout_trials": 7200,
+  "brier_fitted": 0.1290885,
+  "brier_fixed_prior": 0.20280655555555555,
+  "expected_calibration_error": 0.01963888888888891,
+  "fixed_prior_overrun_probability": 0.15,
+  "reliability_bins": [
+    {
+      "bin": 2,
+      "regimes": 2,
+      "test_trials": 800,
+      "predicted": 0.22249999999999998,
+      "observed": 0.1775
+    },
+    {
+      "bin": 4,
+      "regimes": 3,
+      "test_trials": 1200,
+      "predicted": 0.4513333333333333,
+      "observed": 0.47833333333333333
+    },
+    {
+      "bin": 6,
+      "regimes": 1,
+      "test_trials": 400,
+      "predicted": 0.683,
+      "observed": 0.605
+    },
+    {
+      "bin": 7,
+      "regimes": 2,
+      "test_trials": 800,
+      "predicted": 0.758,
+      "observed": 0.7262500000000001
+    },
+    {
+      "bin": 8,
+      "regimes": 3,
+      "test_trials": 1200,
+      "predicted": 0.8523333333333333,
+      "observed": 0.8583333333333333
+    },
+    {
+      "bin": 9,
+      "regimes": 7,
+      "test_trials": 2800,
+      "predicted": 0.9538571428571428,
+      "observed": 0.9571428571428572
+    }
+  ],
+  "cases": [
+    {
+      "regime": 0,
+      "synthetic_true_overrun_probability": 0.02,
+      "fit": {
+        "observations": 400,
+        "overruns": 13,
+        "probability": 0.03482587064676617,
+        "frequency_95pct_interval": [
+          0.019089659086961887,
+          0.054804659873739545
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.205,
+      "test_trials": 400,
+      "test_failures": 47,
+      "observed_failure_rate": 0.1175,
+      "observed_rate_95pct_interval": [
+        0.08952149033047882,
+        0.1527556797282769
+      ],
+      "brier_fitted": 0.11135,
+      "brier_fixed_prior": 0.39421474999999995
+    },
+    {
+      "regime": 1,
+      "synthetic_true_overrun_probability": 0.045,
+      "fit": {
+        "observations": 400,
+        "overruns": 17,
+        "probability": 0.04477611940298507,
+        "frequency_95pct_interval": [
+          0.02670146955162519,
+          0.06700259659708263
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.24,
+      "test_trials": 400,
+      "test_failures": 95,
+      "observed_failure_rate": 0.2375,
+      "observed_rate_95pct_interval": [
+        0.19841684319432581,
+        0.2815772931205065
+      ],
+      "brier_fitted": 0.1811,
+      "brier_fixed_prior": 0.35665474999999996
+    },
+    {
+      "regime": 2,
+      "synthetic_true_overrun_probability": 0.07,
+      "fit": {
+        "observations": 400,
+        "overruns": 31,
+        "probability": 0.07960199004975124,
+        "frequency_95pct_interval": [
+          0.05513258958646752,
+          0.10790559172026265
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.411,
+      "test_trials": 400,
+      "test_failures": 167,
+      "observed_failure_rate": 0.4175,
+      "observed_rate_95pct_interval": [
+        0.370180420494612,
+        0.46638916520433527
+      ],
+      "brier_fitted": 0.24323599999999998,
+      "brier_fixed_prior": 0.30031474999999996
+    },
+    {
+      "regime": 3,
+      "synthetic_true_overrun_probability": 0.09500000000000001,
+      "fit": {
+        "observations": 400,
+        "overruns": 39,
+        "probability": 0.09950248756218906,
+        "frequency_95pct_interval": [
+          0.07214471685094813,
+          0.1305129588317948
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.49,
+      "test_trials": 400,
+      "test_failures": 193,
+      "observed_failure_rate": 0.4825,
+      "observed_rate_95pct_interval": [
+        0.4339296820630707,
+        0.5314032603579181
+      ],
+      "brier_fitted": 0.24975,
+      "brier_fixed_prior": 0.27996975
+    },
+    {
+      "regime": 4,
+      "synthetic_true_overrun_probability": 0.12000000000000001,
+      "fit": {
+        "observations": 400,
+        "overruns": 37,
+        "probability": 0.0945273631840796,
+        "frequency_95pct_interval": [
+          0.06785354688500786,
+          0.12489925520373191
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.453,
+      "test_trials": 400,
+      "test_failures": 214,
+      "observed_failure_rate": 0.535,
+      "observed_rate_95pct_interval": [
+        0.4860191592087707,
+        0.5833149559492518
+      ],
+      "brier_fitted": 0.255499,
+      "brier_fixed_prior": 0.26353725
+    },
+    {
+      "regime": 5,
+      "synthetic_true_overrun_probability": 0.145,
+      "fit": {
+        "observations": 400,
+        "overruns": 64,
+        "probability": 0.16169154228855723,
+        "frequency_95pct_interval": [
+          0.12733221459300603,
+          0.19913638101477682
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.683,
+      "test_trials": 400,
+      "test_failures": 242,
+      "observed_failure_rate": 0.605,
+      "observed_rate_95pct_interval": [
+        0.5563117510251911,
+        0.6516905944488758
+      ],
+      "brier_fitted": 0.24505900000000003,
+      "brier_fixed_prior": 0.24162725
+    },
+    {
+      "regime": 6,
+      "synthetic_true_overrun_probability": 0.17,
+      "fit": {
+        "observations": 400,
+        "overruns": 72,
+        "probability": 0.18159203980099503,
+        "frequency_95pct_interval": [
+          0.1454497374118191,
+          0.22063835257197656
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.745,
+      "test_trials": 400,
+      "test_failures": 272,
+      "observed_failure_rate": 0.68,
+      "observed_rate_95pct_interval": [
+        0.6327588055173099,
+        0.7238166438668052
+      ],
+      "brier_fitted": 0.221825,
+      "brier_fixed_prior": 0.21815225
+    },
+    {
+      "regime": 7,
+      "synthetic_true_overrun_probability": 0.195,
+      "fit": {
+        "observations": 400,
+        "overruns": 87,
+        "probability": 0.21890547263681592,
+        "frequency_95pct_interval": [
+          0.17986098131336697,
+          0.2605136606254526
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.818,
+      "test_trials": 400,
+      "test_failures": 323,
+      "observed_failure_rate": 0.8075,
+      "observed_rate_95pct_interval": [
+        0.766010151768214,
+        0.8431395742629825
+      ],
+      "brier_fitted": 0.155554,
+      "brier_fixed_prior": 0.17824475
+    },
+    {
+      "regime": 8,
+      "synthetic_true_overrun_probability": 0.22,
+      "fit": {
+        "observations": 400,
+        "overruns": 82,
+        "probability": 0.2064676616915423,
+        "frequency_95pct_interval": [
+          0.1683322182508118,
+          0.24728023970299978
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.771,
+      "test_trials": 400,
+      "test_failures": 309,
+      "observed_failure_rate": 0.7725,
+      "observed_rate_95pct_interval": [
+        0.7289382239883379,
+        0.8108773868848361
+      ],
+      "brier_fitted": 0.17574599999999999,
+      "brier_fixed_prior": 0.18919975
+    },
+    {
+      "regime": 9,
+      "synthetic_true_overrun_probability": 0.245,
+      "fit": {
+        "observations": 400,
+        "overruns": 97,
+        "probability": 0.24378109452736318,
+        "frequency_95pct_interval": [
+          0.2030757339434459,
+          0.28682327596538965
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.853,
+      "test_trials": 400,
+      "test_failures": 342,
+      "observed_failure_rate": 0.855,
+      "observed_rate_95pct_interval": [
+        0.8171160037000451,
+        0.8861300214741816
+      ],
+      "brier_fitted": 0.12397899999999999,
+      "brier_fixed_prior": 0.16337725
+    },
+    {
+      "regime": 10,
+      "synthetic_true_overrun_probability": 0.27,
+      "fit": {
+        "observations": 400,
+        "overruns": 125,
+        "probability": 0.31343283582089554,
+        "frequency_95pct_interval": [
+          0.26904080101876354,
+          0.35952643920611665
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.914,
+      "test_trials": 400,
+      "test_failures": 347,
+      "observed_failure_rate": 0.8675,
+      "observed_rate_95pct_interval": [
+        0.830752941175613,
+        0.8972552679836218
+      ],
+      "brier_fitted": 0.117106,
+      "brier_fixed_prior": 0.15946475000000002
+    },
+    {
+      "regime": 11,
+      "synthetic_true_overrun_probability": 0.29500000000000004,
+      "fit": {
+        "observations": 400,
+        "overruns": 112,
+        "probability": 0.2810945273631841,
+        "frequency_95pct_interval": [
+          0.23825069981202085,
+          0.32593486205183864
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.886,
+      "test_trials": 400,
+      "test_failures": 365,
+      "observed_failure_rate": 0.9125,
+      "observed_rate_95pct_interval": [
+        0.88073860783094,
+        0.9364134636743233
+      ],
+      "brier_fitted": 0.080546,
+      "brier_fixed_prior": 0.14537975000000003
+    },
+    {
+      "regime": 12,
+      "synthetic_true_overrun_probability": 0.32000000000000006,
+      "fit": {
+        "observations": 400,
+        "overruns": 131,
+        "probability": 0.3283582089552239,
+        "frequency_95pct_interval": [
+          0.2833392679681935,
+          0.3749425930386963
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.943,
+      "test_trials": 400,
+      "test_failures": 380,
+      "observed_failure_rate": 0.95,
+      "observed_rate_95pct_interval": [
+        0.9240357990869275,
+        0.9674028243733599
+      ],
+      "brier_fitted": 0.047549,
+      "brier_fixed_prior": 0.13364225000000002
+    },
+    {
+      "regime": 13,
+      "synthetic_true_overrun_probability": 0.34500000000000003,
+      "fit": {
+        "observations": 400,
+        "overruns": 132,
+        "probability": 0.3308457711442786,
+        "frequency_95pct_interval": [
+          0.285727498574661,
+          0.3775067992292304
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.936,
+      "test_trials": 400,
+      "test_failures": 387,
+      "observed_failure_rate": 0.9675,
+      "observed_rate_95pct_interval": [
+        0.9451953401262605,
+        0.9809103409130382
+      ],
+      "brier_fitted": 0.032436,
+      "brier_fixed_prior": 0.12816475000000002
+    },
+    {
+      "regime": 14,
+      "synthetic_true_overrun_probability": 0.37000000000000005,
+      "fit": {
+        "observations": 400,
+        "overruns": 140,
+        "probability": 0.35074626865671643,
+        "frequency_95pct_interval": [
+          0.304884853065619,
+          0.39796893911428516
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.951,
+      "test_trials": 400,
+      "test_failures": 384,
+      "observed_failure_rate": 0.96,
+      "observed_rate_95pct_interval": [
+        0.9360172183709143,
+        0.9752311522773793
+      ],
+      "brier_fitted": 0.038481,
+      "brier_fixed_prior": 0.13051225000000002
+    },
+    {
+      "regime": 15,
+      "synthetic_true_overrun_probability": 0.395,
+      "fit": {
+        "observations": 400,
+        "overruns": 145,
+        "probability": 0.36318407960199006,
+        "frequency_95pct_interval": [
+          0.31690358933984025,
+          0.4107123868250719
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.963,
+      "test_trials": 400,
+      "test_failures": 390,
+      "observed_failure_rate": 0.975,
+      "observed_rate_95pct_interval": [
+        0.9545979351700657,
+        0.9863650562602375
+      ],
+      "brier_fitted": 0.024519,
+      "brier_fixed_prior": 0.12581725000000002
+    },
+    {
+      "regime": 16,
+      "synthetic_true_overrun_probability": 0.42000000000000004,
+      "fit": {
+        "observations": 400,
+        "overruns": 180,
+        "probability": 0.4502487562189055,
+        "frequency_95pct_interval": [
+          0.40195136207927884,
+          0.4989999019806892
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.987,
+      "test_trials": 400,
+      "test_failures": 396,
+      "observed_failure_rate": 0.99,
+      "observed_rate_95pct_interval": [
+        0.9745730330055918,
+        0.9961045792067212
+      ],
+      "brier_fitted": 0.009909,
+      "brier_fixed_prior": 0.12112225000000001
+    },
+    {
+      "regime": 17,
+      "synthetic_true_overrun_probability": 0.44500000000000006,
+      "fit": {
+        "observations": 400,
+        "overruns": 182,
+        "probability": 0.4552238805970149,
+        "frequency_95pct_interval": [
+          0.4068577044508926,
+          0.5039984332030787
+        ],
+        "estimator": "Beta(1,1) posterior mean for independent Bernoulli overruns"
+      },
+      "predicted_failure_probability": 0.983,
+      "test_trials": 400,
+      "test_failures": 396,
+      "observed_failure_rate": 0.99,
+      "observed_rate_95pct_interval": [
+        0.9745730330055918,
+        0.9961045792067212
+      ],
+      "brier_fitted": 0.009949,
+      "brier_fixed_prior": 0.12112225000000001
+    }
+  ],
+  "seeds": {
+    "training": "2000..2017",
+    "prediction": "3000..3017",
+    "heldout": "4000..4017",
+    "baseline": 901
+  },
+  "limitations": "Synthetic independent Bernoulli runtimes, same fixed schedule across regimes. Brier is computed on individual heldout outcomes; ECE uses ten fixed bins. Sampling intervals exclude model misspecification. No real-world calibration is claimed."
+}

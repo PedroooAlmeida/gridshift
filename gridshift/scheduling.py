@@ -106,3 +106,36 @@ def energy_cost(factory: Factory, schedule: Sequence[Assignment]) -> Decimal:
     return sum((kw * price for kw, price in zip(
         hourly_load_kw(factory, schedule), factory.prices_per_kwh
     )), Decimal("0"))
+
+
+def price_aware_greedy(factory: Factory) -> Tuple[Assignment, ...]:
+    """Deadline-ordered greedy placement: cheapest legal machine/start each step.
+
+    Stronger comparator than arbitrary FCFS ties; no backtracking or optimality claim.
+    """
+    result = []
+    occupied = set()
+    load = [0] * len(factory.prices_per_kwh)
+    power = {m.id: m.power_kw for m in factory.machines}
+    for job in sorted(factory.jobs, key=lambda j: (j.deadline_hour, j.release_hour, j.id)):
+        choices = []
+        for machine in job.eligible_machines:
+            for start in range(job.release_hour, job.deadline_hour-job.duration_hours+1):
+                end = start + job.duration_hours
+                if any((machine, h) in occupied for h in range(start, end)):
+                    continue
+                if any(o.machine_id == machine and start < o.end_hour and o.start_hour < end for o in factory.outages):
+                    continue
+                if factory.power_caps_kw and any(factory.power_caps_kw[h] is not None and
+                        load[h]+power[machine] > factory.power_caps_kw[h] for h in range(start, end)):
+                    continue
+                cost = power[machine] * sum(factory.prices_per_kwh[start:end], Decimal(0))
+                choices.append((cost, end, machine, start))
+        if not choices:
+            raise BaselineFailure("Price-aware greedy could not place " + job.id)
+        _, end, machine, start = min(choices)
+        result.append(Assignment(job.id, machine, start, end))
+        for h in range(start, end):
+            occupied.add((machine, h))
+            load[h] += power[machine]
+    return tuple(result)

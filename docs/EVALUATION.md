@@ -1,85 +1,77 @@
 # Evaluation methodology
 
-## What is measured
+## Scheduling benchmark
 
-The offline benchmark runs 200 seeded factories with three machines, eight jobs,
-12 hours, variable prices (including negatives), machine compatibility, optional
-outages and optional site caps. Every eleventh seed adds a known resource conflict.
-One hundred development cases and one hundred separately ranged heldout seeds are
-reported. These are synthetic holdouts, not external validation of a learned model.
+200 seeded factories use three machines, eight jobs and 12 hours, with negative
+prices, machine eligibility, known outages and power caps. Every eleventh seed
+adds a known resource conflict. Development and heldout seed ranges are separate;
+these are synthetic holdouts, not independently collected industrial data.
 
-Every case stores the complete factory, FCFS assignments/cost when available,
-optimized assignments, solver status, bound, elapsed time, and independent validation
-errors. A greedy failure is not treated as factory infeasibility. Feasibility rate
-counts returned schedules separately from status; UNKNOWN cannot be silently counted
-as a proof. Baseline savings average only cases where both methods returned a plan.
-Negative prices make percentage savings ambiguous, so aggregate savings use dollars.
-A one-second per-case limit keeps runs laptop-friendly; timeouts are reported honestly.
+Each case records inputs, FCFS and price-aware greedy baselines, optimized schedule,
+independent accounting/checker results, solver status, bound and elapsed time.
+Baseline failure is distinct from proven infeasibility. Savings use only comparable
+cases. Dollar savings avoid ambiguous percentages with negative prices. A one-second
+limit permits honest FEASIBLE/UNKNOWN results. Dataset SHA-256 and source provenance
+support comparisons on identical inputs; runtimes and proof completion can vary.
 
-Correctness tests independently enumerate all placements for 30 tiny seeded problems,
-compute resource use and objective without the optimizer's candidate builder, then
-compare the exact optimal cost or infeasibility. This oracle provides a stronger
-check than simply asking the same solver to validate its own output. Bounds and
-gaps are reported for larger cases; no exact decision regret is invented.
+CI fails on invalid schedules, inconsistent statuses, incorrect accounting,
+non-finite/invalid bounds, infeasibility contradicted by a feasible baseline,
+claimed optima worse than either baseline, and offline parser regressions.
 
-## Extraction and workflow evals
+Independent exhaustive tests cover deterministic tiny problems and stochastic
+placements with outages, caps, negative prices and reward/penalty settlement.
+Bounded-runtime tests enumerate every overrun pattern for a small buffered plan.
+Tests also cover dispatch costs, provider failures and actual Streamlit flows.
 
-Fifteen manually labeled event cases cover complete offers, outages, missing
-penalties, malformed/contradictory hours, multiple events and trailing injected
-instructions. The field grader compares expected fields exactly. Clarification is
-correct only when the expected outcome is clarification; a valid event that is
-unnecessarily rejected fails. This is a small grammar regression corpus, not a
-broad natural-language benchmark. Optional live OpenAI extraction uses the same
-labels and produces a separate report with the model name and per-case output.
+## Extraction and decision boundaries
 
-Workflow tests independently verify economic acceptance/decline/ties, unknown
-machines, impossible outages, no tools on ambiguous instructions, rejection of
-reductions larger than reference load, per-hour caps, and escalation on UNKNOWN
-or unproven economic comparisons. Explanations are deterministic templates using
-solver outputs; the LLM cannot invent savings in a free-form explanation.
+The packaged 15-case offline grammar corpus is distinct from the packaged 30-case
+natural-language corpus for optional live adapters. Semantic grading validates the
+whole Event schema and compares every semantic field; Decimal formatting differences
+are harmless. Unexpected fields, missing penalties and unnecessary clarification
+fail. Live model quality is **unmeasured**: no paid API calls were made for this audit.
 
-## Eval-driven development examples
+The deliberately flawed comparison parser defaults missing penalties to zero and
+accepts prefixes. Its 5/15 score versus the strict parser's 15/15 is an engineered
+regression example, not a historical deployed incident or general-language result.
+The injected accounting defect bills a job entirely at its start-hour price;
+independent per-hour accounting detects it separately from extraction errors.
 
-The quarantined `legacy_parse` in the eval module reproduces an intentionally
-permissive first version: it accepts a prefix, defaults a missing penalty to zero,
-and does not validate the event window. It passes 5/15 examples. The shipped strict
-parser passes 15/15. This is a reproducible engineered regression example, not a
-claim of a historical deployed incident. Do not tune the examples and claim the
-result generalizes to arbitrary language.
+The decision workflow distinguishes nominal profitability from a runtime-aware
+recommendation. Production failures and delivery failures are tracked separately;
+actual energy and reward/penalty settlement enter paired incremental profit.
+Training scenarios for stochastic optimization never overlap evaluation scenarios.
 
-A second defect bills every execution hour at the start-hour price. In the checked-in
-200-case benchmark it misprices 120 of 121 schedulable FCFS plans. The fixed accountant
-integrates hourly load × each actual hourly price and agrees with an independent
-assignment-by-hour calculation in all cases. The two errors show why schema checks
-and numerical graders must be separate.
+## Synthetic calibration
 
-## Runtime stress
+18 regimes each use 400 training observations, 1,000 probability-estimation draws
+and 400 independent test outcomes. A fitted Bernoulli overrun probability is compared
+with a fixed p=0.15 prior on the same heldout outcomes. Brier scores are evaluated
+per binary outcome. Reliability bins use ten fixed probability intervals, weighted
+by their number of test observations. Empty bins are omitted.
 
-The dashboard runs 500 seeded trials with an explicit probability that each job
-runs one hour long. It measures deadline failures, power-cap failures and their
-union, with a Wilson sampling interval. Trials preserve machine ordering and wait
-out outages. Zero and certain-overrun tests verify extreme behavior. This is a
-sensitivity analysis, not a trained or calibrated risk estimator. The optional
-financial sensitivity uses nominal energy cost; it is not expected realized profit.
+The checked-in experiment reports fitted Brier 0.1291 versus fixed-prior 0.2028,
+and ECE 0.0196 over 7,200 heldout trials. This demonstrates calibration machinery
+under its own synthetic data-generating assumptions. It does not establish real
+factory risk accuracy, correlation handling, or robustness to longer overruns.
 
-## Reproduce and inspect
+Policy comparison intervals are approximate and adjusted for three comparisons.
+The risk threshold is a demonstration policy, not a contractual service guarantee.
+See [architecture](ARCHITECTURE.md) for the precise settlement and uncertainty model.
+
+## Reproduce for free
 
 ```sh
 python -m unittest discover -s tests -v
-python -m gridshift.evaluate --count 200 --time-limit 1 --output evals/latest.json
-# Optional paid calls, only with a configured API key:
-python -m gridshift.evaluate_llm
+python -m gridshift.evaluate --count 200 --output evals/latest.json
+python -m gridshift.calibration --output evals/calibration.json
 ```
 
-Inspect `evals/latest.json` or the dashboard's Eval lab. The report records source
-revision, dirty-working-tree flag, solver version, seeds and time limit. Runtimes
-vary by machine. CI stores a fresh report as an artifact. Preserve old reports to
-compare revisions on identical seeds; do not compare different datasets as if
-only the implementation changed. The JSON schema version is currently 1.
+Scenario report schema is version 2; calibration schema is version 1. The dashboard
+reads these reports. GitHub Actions runs correctness/UI tests and regenerates the
+scenario report. Optional paid `gridshift.evaluate_llm --provider anthropic` is
+excluded from CI and defaults. Its report is ignored by Git.
 
-## Remaining evidence needed for production
-
-Real factory runtime distributions and correlated outages; actual utility baseline
-and settlement rules; a larger independently labeled language corpus; live-model
-prompt/model regression runs; rolling execution tests; human approval and audited
-ERP actions. None is implied by the synthetic pass rates.
+Production evidence would require real runtime traces, correlated disruptions,
+actual utility settlement, independently labeled language evaluations, rolling
+execution tests, and audited integration with the operating systems.

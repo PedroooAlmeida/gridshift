@@ -11,6 +11,7 @@ import streamlit as st
 
 from gridshift.agent import EXAMPLES, run
 from gridshift.optimizer import optimize
+from gridshift.comparison import savings_ablation
 from gridshift.risk import simulate
 from gridshift.scenarios import demo_factory
 from gridshift.scheduling import energy_cost, fcfs, hourly_load_kw, validate
@@ -39,6 +40,12 @@ def plan(spike):
         prices[h] *= Decimal(str(spike))
     f = replace(f, prices_per_kwh=tuple(prices))
     return f, fcfs(f), optimize(f)
+
+
+@st.cache_data(show_spinner=False)
+def ablation(spike):
+    f, _, result = plan(spike)
+    return savings_ablation(f, result)
 
 
 def timeline(factory, schedule, title):
@@ -106,6 +113,9 @@ with operations:
         st.plotly_chart(fig, use_container_width=True)
     st.info("Savings include time shifting and choosing lower-power eligible machines. "
             "This is a discrete synthetic model, not measured factory savings.")
+    with st.expander("Separate time shifting from machine choice"):
+        attribution = ablation(spike)
+        st.json(jsonable(attribution))
     with st.expander("Jobs, deadlines and assignments"):
         st.dataframe(pd.DataFrame([asdict(j) for j in factory.jobs]), hide_index=True)
         st.dataframe(pd.DataFrame([asdict(a) for a in result.schedule]), hide_index=True)
@@ -115,45 +125,63 @@ with events:
     st.subheader("From operational event to verified plan")
     st.write("Demand response is measured against a frozen, optimized reference plan. "
              "The reduction must hold in every event hour.")
-    mode_label = st.selectbox("Event interpreter", ["Offline · strict grammar", "OpenAI · structured extraction"])
-    mode = "offline" if mode_label.startswith("Offline") else "openai"
+    mode_label = st.selectbox("Event interpreter", ["Offline · strict grammar", "Anthropic Claude · tool extraction", "OpenAI · structured extraction"])
+    mode = "offline" if mode_label.startswith("Offline") else ("anthropic" if mode_label.startswith("Anthropic") else "openai")
+    api_key = None
+    if mode == "anthropic":
+        api_key = st.text_input("Anthropic API key", type="password", key="anthropic_api_key",
+                                help="Used only in this local session. Never saved to disk, traces, or GitHub.")
+        st.caption("The key and event text are sent only to Anthropic when you click Evaluate event.")
     if mode == "offline":
         st.caption("Offline mode is a deterministic parser, not an LLM. Use the examples exactly, changing their numbers.")
-    else:
+    elif mode == "openai":
         st.caption("Sends your event text to OpenAI when you click Evaluate. Requires OPENAI_API_KEY in the server environment.")
     st.code("\n".join(EXAMPLES), language="text")
     text = st.text_area("Operational event", EXAMPLES[0])
     if st.button("Evaluate event", type="primary"):
-        if mode == "openai" and not os.environ.get("OPENAI_API_KEY"):
+        if mode == "anthropic" and not (api_key or os.environ.get("ANTHROPIC_API_KEY")):
+            st.error("Enter your Anthropic API key in the masked field above.")
+        elif mode == "openai" and not os.environ.get("OPENAI_API_KEY"):
             st.error("OPENAI_API_KEY is not configured. Offline mode remains available.")
         else:
             try:
                 with st.spinner("Validating the event and calling planning tools…"):
-                    st.session_state["decision"] = (spike, text, mode, run(factory, text, mode))
+                    st.session_state["decision"] = (spike, text, mode, run(factory, text, mode, api_key=api_key))
             except Exception as exc:
                 st.session_state.pop("decision", None)
                 st.error(f"Event evaluation failed ({type(exc).__name__}); no decision was made.")
     saved = st.session_state.get("decision")
+    if saved and not hasattr(saved[3], "risk_assessment"):
+        st.session_state.pop("decision", None)
+        saved = None
     if saved and saved[:3] == (spike, text, mode):
         decision = saved[3]
         st.markdown("### " + decision.action)
         st.write(decision.explanation.replace("$", "\\$"))
-        if decision.candidate and decision.candidate.schedule is not None:
-            st.caption("Candidate schedule; a declined offer does not replace the operating plan.")
+        if decision.risk_assessment:
+            risk = decision.risk_assessment
+            st.markdown("#### Compare runtime-aware policies")
+            st.dataframe(pd.DataFrame([{
+                "Policy": p["policy"], "Failure rate": f"{p['failure_rate']:.1%}",
+                "Risk upper bound": f"{p['failure_rate_95pct_interval'][1]:.1%}",
+                "Mean incremental profit ($)": round(p["mean_incremental_profit"], 2),
+                "Profit interval ($)": [round(v,2) for v in p["profit_mean_95pct_interval"]],
+                "Bounded runtime certificate": p["bounded_runtime_certificate"],
+                "Passes gates": p["qualifies"]} for p in risk["policies"]]), hide_index=True)
+            st.caption(risk["assumptions"])
+            st.caption(f"Buffered solve: {risk['buffered_solver_status']} · "
+                       f"Stochastic solve: {risk['stochastic_solver_status']} · "
+                       "Risk gate: upper failure bound ≤ 5%; economics gate: lower mean profit bound > $0.")
+            selected = next((p for p in risk["policies"] if p["policy"] == risk["selected_policy"]), None)
+            if selected:
+                st.plotly_chart(timeline(factory, selected["schedule"],
+                                         "Recommended policy / " + selected["policy"]), use_container_width=True)
+                st.success("Recommended within the synthetic runtime model. No external action is executed.")
+        elif decision.candidate and decision.candidate.schedule is not None:
             st.plotly_chart(timeline(decision.factory, decision.candidate.schedule, "Event response candidate"), use_container_width=True)
-            with st.expander("Runtime uncertainty stress test", expanded=True):
-                p = st.slider("Chance each job takes one extra hour", 0.0, 0.5, 0.15, 0.05)
-                stress = simulate(decision.factory, decision.candidate.schedule, overrun_probability=p)
-                st.metric("Any deadline or power-cap failure", f"{stress['failure_rate']:.1%}")
-                st.caption(stress["assumption"])
+            with st.expander("Runtime uncertainty stress test"):
+                stress = simulate(decision.factory, decision.candidate.schedule)
                 st.json(stress)
-                if decision.event.kind == "demand_response" and decision.net_benefit is not None:
-                    q = Decimal(str(stress["cap_failure_rate"]))
-                    incremental = decision.candidate.cost - decision.reference.cost
-                    net = (1-q)*decision.event.reward_dollars - q*decision.event.penalty_dollars - incremental
-                    st.caption(rf"Illustrative reward/penalty sensitivity: \${net:.2f} using nominal energy cost and "
-                               "simulated cap failure frequency. Excludes delay penalties and realized energy costs; "
-                               "not a stochastic-profit estimate or calibrated recommendation.")
         with st.expander("Structured event and tool trace"):
             st.json(jsonable(decision.event))
             st.json(jsonable(decision.trace))
@@ -173,14 +201,14 @@ with evaluation:
         st.caption(report["description"])
         st.json(summary)
         st.markdown("#### Eval-driven repair: permissive parser → validated event boundary")
-        st.write("The historical v1 parser accepted partial offers and invented a zero penalty. "
+        st.write("The deliberately flawed comparison parser accepts partial offers and invents a zero penalty. "
                  "The production v2 parser requires a complete, valid event or asks for clarification.")
         a,b = st.columns(2)
-        a.metric("Historical v1 parser", f"{report['parser_v1']['passed']}/{report['parser_v1']['total']}")
+        a.metric("Injected-defect parser", f"{report['parser_v1']['passed']}/{report['parser_v1']['total']}")
         b.metric("Current v2 offline parser", f"{report['parser_v2']['passed']}/{report['parser_v2']['total']}")
         failures = [t for t in report["parser_v1"]["traces"] if not t["passed"]]
         if failures:
-            selected = st.selectbox("Inspect a historical parser failure", range(len(failures)), format_func=lambda i: failures[i]["text"])
+            selected = st.selectbox("Inspect an injected parser defect", range(len(failures)), format_func=lambda i: failures[i]["text"])
             st.json(failures[selected])
         st.markdown("#### Scenario traces")
         split = st.radio("Seed split", ["development", "heldout"], horizontal=True)
@@ -193,6 +221,25 @@ with evaluation:
         with st.expander("Inputs, schedules, bounds and failures"):
             st.json(next(c for c in cases if c["seed"] == selected_seed))
         st.download_button("Download eval report", report_path.read_text(), "gridshift-evals.json", "application/json")
+    calibration_path = Path(__file__).parent / "evals/calibration.json"
+    if calibration_path.exists():
+        calibration = json.loads(calibration_path.read_text())
+        st.markdown("#### Synthetic risk calibration · independent heldout outcomes")
+        a,b,c = st.columns(3)
+        a.metric("Heldout runtime trials", calibration["heldout_trials"])
+        b.metric("Fitted Brier score", f"{calibration['brier_fitted']:.4f}")
+        c.metric("Fixed-prior Brier score", f"{calibration['brier_fixed_prior']:.4f}")
+        bins = calibration["reliability_bins"]
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", name="Perfect calibration"))
+        fig.add_trace(go.Scatter(x=[b["predicted"] for b in bins], y=[b["observed"] for b in bins],
+                                mode="markers+lines", name="Heldout synthetic observations"))
+        fig.update_layout(xaxis_title="Predicted failure probability", yaxis_title="Observed failure rate",
+                          template="plotly_dark", height=350)
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption(calibration["limitations"])
+    st.info("No API key needed. All displayed results are local synthetic evaluations. "
+            "Optional live model adapters have mock tests; live language-model quality is unmeasured.")
 with engineering:
     st.subheader("Explain the system in five minutes")
     st.markdown("""
@@ -207,5 +254,8 @@ with engineering:
 **Limitations:** one-hour resolution, fixed active power, no setup times, no dependencies,
 no live ERP or utility integration. Outages are known before replanning starts; this is
 not mid-execution rescheduling. The stress model is synthetic and independent across jobs.
-OpenAI integration is optional; offline eval scores do not measure LLM performance.
+Anthropic/OpenAI adapters are optional; offline eval scores do not measure LLM performance.
+Stochastic planning shares placements across 24 training scenarios and is evaluated on 500 fresh draws.
+Buffered reservations certify feasibility only for overruns of at most one hour.
+Calibration uses disjoint synthetic runtime observations; real factory data is still needed.
 """)

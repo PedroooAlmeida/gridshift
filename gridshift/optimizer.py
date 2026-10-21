@@ -87,6 +87,10 @@ def optimize(factory: Factory, time_limit_seconds: float = 10.0) -> Optimization
         raise RuntimeError("Solver output failed independent validation: " + "; ".join(errors))
     cost = energy_cost(factory, schedule)
     chosen_cost = sum(power[a.machine_id] * sum(prices[a.start_hour:a.end_hour]) for a in schedule)
+    if abs(solver.objective_value - chosen_cost) > 0.25:
+        raise RuntimeError("Returned schedule does not match the solver objective")
+    if solver.best_objective_bound > chosen_cost + 0.25:
+        raise RuntimeError("Minimization bound exceeds incumbent cost")
     if cost != Decimal(chosen_cost) / scale:
         raise RuntimeError("Independent accounting disagrees with solver coefficients")
     return OptimizationResult(label, schedule, cost, solver.best_objective_bound / scale,

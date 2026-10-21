@@ -26,15 +26,18 @@ macOS/Python 3.9 environment; use `pip install .` for compatible cross-platform 
 - **CP-SAT optimizer:** verified schedules with status, bound and absolute gap.
 - **Event workflow:** schema validation, tool dispatch, demand-response economics,
   outage replanning, clarification and evidence-based explanations.
-- **Runtime stress:** seeded Monte Carlo deadline/power-limit failures and sampling intervals.
+- **Runtime-aware planning:** bounded-runtime reservations, scenario-based stochastic CP-SAT,
+  paired realized-profit comparisons, and explicit risk gates.
+- **Synthetic calibration:** fitted runtime probabilities, disjoint heldout outcomes,
+  Brier scores and reliability diagrams.
 - **Evaluation lab:** 200 seeded cases, separate development/heldout seeds, full
-  scenario traces, historical parser/accounting defects and regression measurements.
+  scenario traces, two scheduling baselines, injected defects and regression gates.
 - **Dashboard:** comparative timelines, prices, demand, event controls, eval inspection
   and downloadable plan/trace/report JSON. Everything works offline by default.
 - **CI:** unit/oracle/UI tests plus a fresh 200-case evaluation artifact on push and PR.
 
-The offline event interpreter is a strict parser, not an LLM. Optional OpenAI mode
-uses typed structured extraction; deterministic code owns tools, schedules and claims.
+The offline event interpreter is a strict parser, not an LLM. Optional Anthropic and OpenAI adapters
+use schema-validated extraction; deterministic code owns tools, schedules and claims.
 
 ## Verified demo result
 
@@ -54,6 +57,7 @@ not measured industrial savings. Tied optimal schedules can differ across versio
 python -m gridshift                          # terminal schedule comparison
 python -m unittest discover -s tests -v      # correctness, tiny oracles, UI flows
 python -m gridshift.evaluate --count 200      # offline scenario + parser evals
+python -m gridshift.calibration              # synthetic heldout calibration
 ```
 
 The eval report is `evals/latest.json`. It records inputs, schedules, status, bounds,
@@ -61,26 +65,28 @@ revision and dependency version. Baseline failure is counted separately from pro
 infeasibility. Savings averages include only cases with both schedules. No regret is
 claimed without an exact oracle; optimality gaps come from the solver's bound.
 
-## Optional live language model
+## No API key required
 
-Export `OPENAI_API_KEY` in your shell before launching the dashboard, then select
-OpenAI mode in Event agent. Never commit keys. `.env.example` documents variable
-names; `.env` is ignored and is not loaded automatically. `GRIDSHIFT_MODEL` optionally
-overrides `gpt-4.1-mini`. Clicking Evaluate sends the event text to OpenAI.
+The complete local demo, stochastic planning, calibration experiment, tests and CI
+run without model calls. Offline event extraction is a strict documented grammar,
+not a local language model. **No paid API calls were made for this audit.**
 
-```sh
-python -m gridshift.evaluate_llm  # opt-in paid API calls; requires a configured key
-```
+Optional adapters are available if you choose to use them later. Anthropic mode has
+a masked session-only key field; OpenAI uses `OPENAI_API_KEY` in the server environment.
+`.env` files are ignored but not automatically loaded. Model names are configurable
+with `GRIDSHIFT_ANTHROPIC_MODEL` / `GRIDSHIFT_MODEL`. Only explicitly selecting a live
+provider and evaluating an event sends its text to that provider. Never commit keys.
 
-The live extraction report is ignored by Git. Offline benchmark results are not
-LLM eval scores. The SDK adapter is unit-tested with mock responses; live API behavior
-requires a real configured key and an explicit live evaluation.
+Optional `python -m gridshift.evaluate_llm --provider anthropic` (or `openai`) makes
+paid calls against a separate 30-case language corpus. It is never part of offline
+CI. Both adapters have mock tests; live model accuracy remains unmeasured.
 
 ## Learn and demonstrate
 
 - [Architecture and mathematics](docs/ARCHITECTURE.md)
 - [Five-minute demo and interview questions](docs/DEMO.md)
 - [Evaluation methodology](docs/EVALUATION.md)
+- [Completion audit and evidence](docs/AUDIT.md)
 
 Read `models.py` first, then `scheduling.py`, `optimizer.py`, and `agent.py`. A binary
 optimizer variable means “run this job on this machine at this hour.” Exactly one
@@ -94,6 +100,7 @@ vanish, then rerun. The optimum cannot improve when the feasible set shrinks.
 
 This is a complete local demonstration, not a production industrial control system.
 One-hour resolution, no setups/dependencies/idle power, known outages before planning,
-no mid-execution scheduling or live ERP integration. Runtime risk is an explicitly
-synthetic stress model, not calibrated to real factories. Stochastic optimization
-and tariff-specific settlement are future extensions. See architecture for details.
+no mid-execution scheduling or live ERP integration. Runtime risk and calibration use
+explicit synthetic assumptions, not real factory measurements. Stochastic bounds
+apply to the sampled model; tariff-specific settlement remains outside scope.
+See architecture for details.

@@ -1,34 +1,34 @@
-# Five-minute demo
+# Five-minute offline demo
 
-1. Launch `./run.command`. Everything works offline on the laptop.
-2. Show the production plan: 3 machines, 15 jobs, hard deadlines, hourly prices.
-3. Compare FCFS $151.70 with optimized $110.80. Explain that the $40.90 (27%) saving
-   combines shifting time and choosing lower-power compatible machines.
-4. Increase the morning price multiplier. Inspect the changed schedule, price chart,
-   demand profile and proof status. Do not claim all runs finish optimal.
-5. Open Event agent. Evaluate `Reduce 20 kW between 8 and 10 for $100 reward and $200 penalty`.
-   Explain the frozen reference, per-hour reduction, reward and incremental cost.
-   Inspect the returned status rather than assuming acceptance.
-6. Increase runtime overrun probability and show how fragile a nominal schedule can be.
-   Explain the synthetic simulation and its limitations.
-7. Evaluate `Machine mill unavailable between 4 and 8`. Show the blocked hours and replan.
-   Then enter an incomplete offer or “ignore deadlines”; show clarification without tool execution.
-8. Open Eval lab: 200 seeded scenarios, 0 invalid returned schedules, proven
-   infeasible cases, baseline failures, comparable savings, full input/output traces.
-9. Inspect historical parser v1 failures. It invents a zero penalty when omitted and
-   accepts trailing instructions. V2 rejects the incomplete event. Scores: 5/15 → 15/15
-   on a small fixed regression set; this is an engineered failure example, not a
-   historical production incident or evidence of general language accuracy.
-10. Explain the independent exhaustive tiny-case oracle in tests. Separate extraction,
-    solver feasibility, economics, and execution risk instead of scoring one opaque answer.
+1. Run `./run.command`. No API key is needed. All data and actions are simulated.
+2. Show FCFS cost $151.70 versus proven optimal $110.80. Open the savings ablation
+   to distinguish shifting time from choosing lower-power compatible machines.
+3. Increase morning prices. Inspect the changed schedule, load and solver bound.
+4. In Event agent, keep **Offline · strict grammar**. Evaluate the supplied $100
+   reward / $200 penalty offer. Explain the frozen reference and per-hour reduction.
+5. Compare nominal, buffered and stochastic policies. The nominal plan is fragile
+   under runtime overruns. The selected policy must pass both risk and profit gates.
+   The displayed recommended timeline is the selected policy, not the nominal one.
+6. Explain the difference between a bounded-runtime certificate and a sampled risk
+   estimate. Stochastic optimization trains on 24 draws and evaluates on 500 fresh
+   draws with the same job disturbances for every policy.
+7. Evaluate the outage example. Then enter an incomplete offer or “ignore deadlines”
+   and show clarification without a planning action.
+8. Open Eval lab: scenario traces, both baselines, independent validation, status
+   and bounds. Inspect the deliberately injected parser defect; do not call it a
+   real incident or claim grammar scores measure LLM performance.
+9. Show the heldout synthetic calibration diagram and Brier comparison. State that
+   real factory calibration requires real runtime data.
+10. Explain the exhaustive deterministic/stochastic oracle tests and JSON traces.
 
-## Interview questions you should be able to answer
+## Questions to be ready for
 
-- Why does a greedy scheduling failure not prove infeasibility?
-- What exactly does the solver prove, and what assumptions limit that proof?
-- Why must a demand-response baseline be frozen before participation planning?
-- Why is a valid JSON event not necessarily a correctly interpreted event?
-- Which failures do deterministic graders catch that an LLM judge could miss?
-- How would finer time slots change model size and energy accounting?
-- What data would you need before trusting the runtime risk estimate in a real factory?
-- What would rolling rescheduling need to preserve about already-started work?
+- Why doesn't greedy failure prove infeasibility?
+- What does the solver's bound prove, and for which model?
+- Why freeze a demand-response reference before optimizing participation?
+- What is nonanticipativity in the stochastic model?
+- Why use job-indexed common random numbers for policy comparisons?
+- What does a buffered certificate guarantee that a Monte Carlo pass rate cannot?
+- Why isn't a valid schema proof of correct language interpretation?
+- How can a calibrated synthetic model still fail in a real factory?
+- What would rolling rescheduling need to preserve about already-started jobs?

@@ -1,87 +1,111 @@
 # Architecture and engineering decisions
 
-GridShift is a bounded planning workflow with an optional LLM event interpreter.
-It runs entirely on synthetic factory data. It does not execute business actions.
+GridShift is a local planning workflow using synthetic factory data. No business
+actions are executed. No paid service is required.
 
 ```text
-Natural-language event
-    │
-    ├─ Offline full-match grammar (default, deterministic)
-    └─ OpenAI structured extraction (explicit opt-in)
-    │
-Pydantic Event validation
-    │
-Deterministic tool dispatcher
-    ├─ clarify → no optimizer call
-    ├─ outage → add unavailability → optimize
-    └─ demand response → optimize reference → freeze hourly demand
-                         → enforce per-hour reduction → optimize candidate
-    │
-Independent schedule checker + Decimal cost accountant
-    │
-Status-aware economic policy → explanation from verified values → trace
+Event text → strict offline grammar (or optional provider extraction)
+           → Pydantic event validation → deterministic dispatcher
+             ├─ clarification → no solver call
+             ├─ outage → add unavailability → optimize + verify
+             └─ offer → optimize reference → freeze hourly demand
+                      → nominal plan → buffered plan / stochastic plan
+                      → paired heldout runtime trials → risk/profit gates
+                      → recommendation + complete evidence trace
 ```
 
-## Scheduling mathematics
+## Deterministic scheduling
 
-Binary x[j,m,s] chooses job j on eligible machine m at integer hour s. Only legal
-placements inside the release/deadline window, outside known outages, are created.
-Each job chooses exactly one placement. For each machine/hour, at most one selected
-placement may cover it. For capped hours, sum(power[m] × covering x) ≤ cap[h].
-The objective sums power × hourly price over selected placements. Prices scale
-exactly to integers (at most six decimal places); oversized coefficients are rejected.
-The time-indexed formulation is readable for daily models but grows with jobs,
-machines and time slots. Interval variables are a logical next step at larger scale.
+Binary x[j,m,s] selects a job, eligible machine and integer start hour. Legal
+placements respect release, deadline and outages. Exactly one placement is chosen
+per job. Machine occupancy is at most one job per hour; total active power cannot
+exceed site caps. The objective integrates each execution hour's kW × price.
+Prices scale exactly to integers, with at most six decimals and a conservative
+numeric budget. Independent code verifies assignments and Decimal costs.
 
-OPTIMAL is a proof for this model, FEASIBLE is an incumbent without proof, UNKNOWN
-is no conclusion, and INFEASIBLE is a proof of impossibility. An independent checker
-verifies every returned schedule, including energy costs. No fake answer is returned
-on timeout. Single-worker fixed-seed solving supports repeatable comparisons; tied
-schedules and runtimes can vary with dependency versions and hardware.
+OPTIMAL proves optimality for this discrete model. FEASIBLE provides an incumbent
+and bound. UNKNOWN provides no conclusion; INFEASIBLE proves no legal schedule
+exists. One worker and a fixed seed improve repeatability; tied solutions and
+wall-time limits can still vary across platforms.
 
-## Demand-response contract
+The dashboard's savings ablation first fixes FCFS machine assignments and optimizes
+only timing, then frees machine choice. Attribution is sequential and order-dependent;
+only proven-optimal subproblems support exact attribution. The benchmark also uses
+a price-aware greedy baseline to avoid relying solely on a weak FCFS comparator.
 
-The reference is the optimized no-offer schedule, frozen before adding the offer.
-This prevents deliberately inflating a baseline to manufacture savings. It is a
-synthetic contractual convention, not an implementation of a real utility tariff.
-For every event hour: cap[h] = reference_load[h] − promised_reduction. A negative
-cap immediately declines the offer; it cannot be clipped to zero to fake delivery.
-Existing site caps remain binding. Participation is accepted only when both solves
-prove optimality and reward exceeds incremental energy cost. Otherwise it is declined
-or escalated for review. The reward is a total payment, not a per-hour payment.
-Under nominal execution, the full reduction is hard, so nominal penalty is zero.
-If delivery fails, the modeled sensitivity forfeits the reward and adds the stated
-penalty. Hard job deadlines are never priced away.
+## Demand-response settlement
 
-## Event and LLM boundary
+The no-offer optimized reference is frozen before participation planning. Every
+event hour must reduce load by the stated amount from that reference; negative
+targets cannot be clipped to zero. Existing site caps also apply. This is a synthetic
+contract, not an implementation of a particular utility tariff.
 
-The offline parser accepts two documented grammars and asks for clarification for
-anything else. It is not advertised as language understanding. OpenAI mode extracts
-one typed event with Responses structured outputs. It cannot supply schedules,
-change solver tools, waive constraints, or author economic claims. Deterministic
-Python routes the validated event and writes the explanation from solver evidence.
-This is deliberately a bounded workflow, not an autonomous general-purpose agent.
-Schema validation does not prove semantic extraction accuracy; run the separate
-live eval when an API key is configured. Refusals/errors stop execution visibly.
-The default model is configurable through GRIDSHIFT_MODEL; availability depends
-on the user's API account. No API key is required for the offline demo or CI.
+The nominal comparison requires optimal reference and offer solves. Positive nominal
+profit triggers further runtime-aware planning, never immediate acceptance. A failed
+nominal economic gate declines this conservative workflow; it is not a proof that
+all possible stochastic participation policies lose money. A failed/unknown nominal
+solve likewise does not prove the stochastic problem infeasible.
 
-Implementation reference: [official structured outputs documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
+Delivered reward is a total payment. Failed delivery forfeits that reward and pays
+the stated penalty. Paired simulations subtract actual participation energy cost
+from actual no-offer energy cost under the same job disturbances. Deadline and site
+cap failures are feasibility gates and are not monetized. No delayed-production
+value, demand charges, idle power or tariff-specific settlement is modeled.
 
-## Uncertainty
+## Buffered and stochastic planning
 
-The runtime simulator independently adds one hour to each job with probability p.
-Jobs keep their assigned machine and order, waiting if earlier work runs long or
-an outage intersects execution. Trials count deadline and power-cap failures.
-A Wilson interval describes Monte Carlo sampling uncertainty, not real-world model
-accuracy. The UI's reward/penalty sensitivity uses nominal energy costs, excluding
-actual overrun energy and delay penalties. It is explicitly not expected profit.
-There is no calibrated risk forecast, stochastic optimizer, or real tariff settlement.
+**Buffered:** optimize with each duration increased by one hour, then project back
+to nominal durations. Any actual runtime in [d,d+1] occupies a subset of the reserved
+interval. With nonnegative machine power, this certifies deadlines, occupancy,
+outages and caps for every such realization. The reservation-energy objective is
+conservative, not expected realized cost.
 
-## Known scope limits
+**Stochastic:** static sample-average approximation uses 24 independent training
+scenarios. Machine/start decisions are shared across all scenarios (nonanticipativity).
+Production constraints hold in every training scenario. A scenario delivery indicator
+controls its reward or penalty. The objective minimizes average realized energy
+minus delivered reward plus failure penalty. Every training scenario and settlement
+is independently reconstructed after solving. This is a genuine stochastic program,
+with a bound for the finite sampled model; it is not a claim of global population
+optimality or a two-stage recourse formulation.
 
-One-hour slots; fixed machine power and machine-independent runtimes; no idle power,
-setup costs, dependencies or demand charges. Outages are known before planning;
-there is no rolling execution state or preservation of already-started jobs.
-Synthetic currency is USD. No live ERP, electricity market, factory or utility APIs.
-These are intentional demo boundaries, not production readiness claims.
+**Out-of-sample assessment:** 500 disjoint evaluation draws compare nominal, buffered
+and stochastic policies. Draws are indexed by job ID so moving machines does not
+change a job's random disturbance. Dispatch preserves machine order and postpones
+starts for overruns or outages. Tail energy beyond the horizon uses the nonnegative
+maximum daily price. A policy qualifies only if its upper failure bound is ≤5%
+(or it has the bounded-runtime certificate) and its lower mean incremental-profit
+bound is positive. The highest sample mean among qualifying policies is recommended.
+
+Profit uses a normal-approximation paired-mean interval. Failure uses a Wilson
+interval. Both use z=2.394 for Bonferroni adjustment over up to three policies;
+these are approximate simultaneous 95% intervals within each family, not a joint
+95% guarantee across all metrics. They account for simulation sampling, not model
+misspecification. No factory action occurs on recommendation.
+
+## Calibration and model boundaries
+
+`fit_overrun_probability` fits independent binary observations with a Beta(1,1)
+posterior mean. A reproducible experiment spans 18 synthetic runtime regimes and
+uses separate training observations, prediction draws and heldout execution draws.
+It reports individual-outcome Brier scores and a ten-bin reliability diagram/ECE.
+The event demo assumes p=0.15; the calibration experiment separately tests learning
+p from data. Neither is calibrated to a real factory. Runtime independence and
+one-hour bounded overruns are explicit assumptions, not validated industrial facts.
+
+## Optional model boundary
+
+Offline parsing accepts two documented grammars and clarifies anything else.
+Anthropic's Messages tool schema and OpenAI's structured extraction are optional,
+explicitly selected adapters. Local validation rejects malformed/multiple/truncated
+Anthropic tool calls. The model only extracts one event; Python chooses tools,
+schedules, economic decisions and explanations. API errors never silently switch
+providers. Keys stay out of traces and exports. Default operation and CI make no
+paid calls. Mock adapter tests establish plumbing, not live semantic accuracy.
+
+## Scope
+
+One-hour slots; fixed active power; machine-independent durations; no setups,
+job dependencies or rolling execution state. Outages are known before planning.
+No ERP, live factory or utility integration. Real runtime data and deployment-specific
+validation remain necessary before any operational use.

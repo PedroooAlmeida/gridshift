@@ -24,6 +24,8 @@ class Event(BaseModel):
                                            self.reward_dollars, self.penalty_dollars, self.machine_id)):
                 raise ValueError("Clarification cannot execute partially specified actions")
             return self
+        if self.clarification is not None:
+            raise ValueError("Executable events cannot also request clarification")
         if self.start_hour is None or self.end_hour is None or self.start_hour >= self.end_hour:
             raise ValueError("A complete, increasing time window is required")
         if self.kind == "demand_response":

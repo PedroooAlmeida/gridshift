@@ -10,7 +10,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(app.metric[1].value, "$110.80")
         app.button[0].click().run(timeout=60)
         self.assertEqual(len(app.exception), 0)
-        self.assertTrue(any("ACCEPT" in x.value for x in app.markdown))
+        self.assertTrue(any("RECOMMEND" in x.value for x in app.markdown))
         app.text_area[0].set_value("Machine mill unavailable between 4 and 8")
         app.button[0].click().run(timeout=60)
         self.assertEqual(len(app.exception), 0)

@@ -24,7 +24,7 @@ class EventTests(unittest.TestCase):
 
     def test_reward_must_cover_incremental_cost(self):
         accept = execute(self.factory(), self.offer())
-        self.assertEqual(accept.action, "ACCEPT")
+        self.assertEqual(accept.action, "NOMINALLY_PROFITABLE")
         self.assertEqual(accept.net_benefit, Decimal(6))
         self.assertEqual(accept.candidate.cost, Decimal(5))
         self.assertEqual(validate(accept.factory, accept.candidate.schedule), ())
