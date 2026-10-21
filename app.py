@@ -23,6 +23,11 @@ st.markdown('''<style>
 h1 {letter-spacing: -2px; font-weight: 750 !important;}
 [data-testid="stMetric"] {background:#15212d; padding:20px; border-radius:12px; border:1px solid #2a3946;}
 [data-testid="stSidebar"] {background:#111c26;}
+@media (max-width: 900px) {
+  [data-testid="stMetric"] {padding:12px;}
+  [data-testid="stMetricValue"] {font-size:1.35rem;}
+  [data-testid="stMetricLabel"] p {font-size:0.75rem; white-space:normal;}
+}
 </style>''', unsafe_allow_html=True)
 
 
