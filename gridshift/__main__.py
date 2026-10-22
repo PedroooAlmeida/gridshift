@@ -1,13 +1,15 @@
-from .scenarios import demo_factory
-from .scheduling import fcfs, validate, energy_cost, hourly_load_kw
 from .optimizer import optimize
+from .scenarios import demo_factory
+from .scheduling import energy_cost, fcfs, hourly_load_kw, validate
 
 
 def show(factory, schedule):
     print("Job      Machine   Start  End  Deadline")
     deadlines = {j.id: j.deadline_hour for j in factory.jobs}
     for a in schedule:
-        print(f"{a.job_id:8} {a.machine_id:8} {a.start_hour:5} {a.end_hour:4} {deadlines[a.job_id]:9}")
+        print(
+            f"{a.job_id:8} {a.machine_id:8} {a.start_hour:5} {a.end_hour:4} {deadlines[a.job_id]:9}"
+        )
     print(f"Validation errors: {len(validate(factory, schedule))}")
     print(f"Energy: {sum(hourly_load_kw(factory, schedule))} kWh")
     print(f"Electricity cost: ${energy_cost(factory, schedule):.2f}")

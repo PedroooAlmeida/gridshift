@@ -1,9 +1,11 @@
 """Opt-in live extraction eval. Makes paid API calls; never run by offline CI."""
+
 import argparse
 import json
 import os
 from pathlib import Path
-from .agent import parse_llm, parse_anthropic
+
+from .agent import parse_anthropic, parse_llm
 from .evaluate import parser_evals
 
 
@@ -16,10 +18,15 @@ def main():
     if not os.environ.get(key_name):
         parser.error(f"Set {key_name} in your environment; never commit it")
     extract = parse_anthropic if args.provider == "anthropic" else parse_llm
-    result = parser_evals(lambda text: extract(text).model_dump(mode="json"), dataset="language_events.json")
+    result = parser_evals(
+        lambda text: extract(text).model_dump(mode="json"), dataset="language_events.json"
+    )
     result["mode"] = "live_" + args.provider
-    result["model"] = (os.environ.get("GRIDSHIFT_ANTHROPIC_MODEL", "claude-sonnet-4-6")
-                       if args.provider == "anthropic" else os.environ.get("GRIDSHIFT_MODEL", "gpt-4.1-mini"))
+    result["model"] = (
+        os.environ.get("GRIDSHIFT_ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        if args.provider == "anthropic"
+        else os.environ.get("GRIDSHIFT_MODEL", "gpt-4.1-mini")
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2))
     print(f"Live extraction exact-field score: {result['passed']}/{result['total']}")

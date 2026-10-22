@@ -1,8 +1,10 @@
 """Exhaustive enumeration is a separate oracle for tiny instances."""
+
 import itertools
 import random
 import unittest
 from decimal import Decimal
+
 from gridshift.models import Assignment, Factory, Job, Machine
 from gridshift.optimizer import optimize
 from gridshift.scenarios import demo_factory
@@ -12,10 +14,14 @@ from gridshift.scheduling import energy_cost, fcfs, validate
 def exhaustive_cost(factory):
     # Enumerate every machine/start combination, independently check occupancy
     # and compute cost without calling the optimizer's candidate builder.
-    choices = [[Assignment(j.id, m, s, s + j.duration_hours)
-                for m in j.eligible_machines
-                for s in range(j.release_hour, j.deadline_hour - j.duration_hours + 1)]
-               for j in factory.jobs]
+    choices = [
+        [
+            Assignment(j.id, m, s, s + j.duration_hours)
+            for m in j.eligible_machines
+            for s in range(j.release_hour, j.deadline_hour - j.duration_hours + 1)
+        ]
+        for j in factory.jobs
+    ]
     best = None
     powers = {m.id: m.power_kw for m in factory.machines}
     for schedule in itertools.product(*choices):
@@ -45,11 +51,20 @@ class OptimizerTests(unittest.TestCase):
     def test_seeded_tiny_cases_against_exhaustive_oracle(self):
         for seed in range(30):
             rng = random.Random(seed)
-            f = Factory((Machine("a", 10), Machine("b", 20)),
-                        tuple(Job(str(i), rng.randint(1, 3), rng.randint(0, 1),
-                                  rng.randint(2, 4), ("a",) if i % 2 else ("a", "b"))
-                              for i in range(3)),
-                        tuple(Decimal(rng.randint(-3, 8)) / 100 for _ in range(4)))
+            f = Factory(
+                (Machine("a", 10), Machine("b", 20)),
+                tuple(
+                    Job(
+                        str(i),
+                        rng.randint(1, 3),
+                        rng.randint(0, 1),
+                        rng.randint(2, 4),
+                        ("a",) if i % 2 else ("a", "b"),
+                    )
+                    for i in range(3)
+                ),
+                tuple(Decimal(rng.randint(-3, 8)) / 100 for _ in range(4)),
+            )
             expected = exhaustive_cost(f)
             r = optimize(f)
             with self.subTest(seed=seed):
@@ -64,9 +79,11 @@ class OptimizerTests(unittest.TestCase):
                     self.assertAlmostEqual(r.lower_bound_dollars, float(expected))
 
     def test_recovers_from_greedy_failure(self):
-        f = Factory((Machine("m", 10),),
-                    (Job("a", 2, 0, 3, ("m",)), Job("b", 1, 0, 1, ("m",))),
-                    (Decimal("0.1"),) * 3)
+        f = Factory(
+            (Machine("m", 10),),
+            (Job("a", 2, 0, 3, ("m",)), Job("b", 1, 0, 1, ("m",))),
+            (Decimal("0.1"),) * 3,
+        )
         self.assertEqual(optimize(f).status, "OPTIMAL")
 
     def test_empty_job_set(self):

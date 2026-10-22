@@ -1,6 +1,8 @@
 """A deliberately simple baseline, independent validator, and cost accounting."""
+
 from decimal import Decimal
 from typing import Sequence, Tuple
+
 from .models import Assignment, Factory
 
 
@@ -23,15 +25,20 @@ def fcfs(factory: Factory) -> Tuple[Assignment, ...]:
             for h in range(a.start_hour, a.end_hour):
                 load[h] += powers[a.machine_id]
         for m in job.eligible_machines:
-            for start in range(max(available[m], job.release_hour),
-                               job.deadline_hour - job.duration_hours + 1):
+            for start in range(
+                max(available[m], job.release_hour), job.deadline_hour - job.duration_hours + 1
+            ):
                 end = start + job.duration_hours
-                if any(o.machine_id == m and start < o.end_hour and o.start_hour < end
-                       for o in factory.outages):
+                if any(
+                    o.machine_id == m and start < o.end_hour and o.start_hour < end
+                    for o in factory.outages
+                ):
                     continue
                 if factory.power_caps_kw and any(
-                        factory.power_caps_kw[h] is not None and
-                        load[h] + powers[m] > factory.power_caps_kw[h] for h in range(start, end)):
+                    factory.power_caps_kw[h] is not None
+                    and load[h] + powers[m] > factory.power_caps_kw[h]
+                    for h in range(start, end)
+                ):
                     continue
                 options.append((end, m, start))
                 break
@@ -69,21 +76,28 @@ def validate(factory: Factory, schedule: Sequence[Assignment]) -> Tuple[str, ...
             errors.append("outside horizon: " + a.job_id)
         if a.start_hour < j.release_hour or a.end_hour > j.deadline_hour:
             errors.append("release/deadline violation: " + a.job_id)
-        if any(o.machine_id == a.machine_id and a.start_hour < o.end_hour
-               and o.start_hour < a.end_hour for o in factory.outages):
+        if any(
+            o.machine_id == a.machine_id and a.start_hour < o.end_hour and o.start_hour < a.end_hour
+            for o in factory.outages
+        ):
             errors.append("outage violation: " + a.job_id)
         valid_intervals.append(a)
     for job_id in sorted(set(jobs) - seen):
         errors.append("missing job: " + job_id)
     for i, a in enumerate(valid_intervals):
-        for b in valid_intervals[i + 1:]:
-            if a.machine_id == b.machine_id and max(a.start_hour, b.start_hour) < min(a.end_hour, b.end_hour):
+        for b in valid_intervals[i + 1 :]:
+            if a.machine_id == b.machine_id and max(a.start_hour, b.start_hour) < min(
+                a.end_hour, b.end_hour
+            ):
                 errors.append("machine overlap: " + a.job_id + "/" + b.job_id)
     if factory.power_caps_kw:
         powers = {m.id: m.power_kw for m in factory.machines}
         for h, cap in enumerate(factory.power_caps_kw):
-            load = sum(powers.get(a.machine_id, 0) for a in valid_intervals
-                       if a.start_hour <= h < a.end_hour)
+            load = sum(
+                powers.get(a.machine_id, 0)
+                for a in valid_intervals
+                if a.start_hour <= h < a.end_hour
+            )
             if cap is not None and load > cap:
                 errors.append("power cap violation at hour " + str(h))
     return tuple(errors)
@@ -103,9 +117,13 @@ def hourly_load_kw(factory: Factory, schedule: Sequence[Assignment]) -> Tuple[in
 
 def energy_cost(factory: Factory, schedule: Sequence[Assignment]) -> Decimal:
     # Each slot is one hour: kW × 1 h × $/kWh = dollars.
-    return sum((kw * price for kw, price in zip(
-        hourly_load_kw(factory, schedule), factory.prices_per_kwh
-    )), Decimal("0"))
+    return sum(
+        (
+            kw * price
+            for kw, price in zip(hourly_load_kw(factory, schedule), factory.prices_per_kwh)
+        ),
+        Decimal("0"),
+    )
 
 
 def price_aware_greedy(factory: Factory) -> Tuple[Assignment, ...]:
@@ -120,14 +138,20 @@ def price_aware_greedy(factory: Factory) -> Tuple[Assignment, ...]:
     for job in sorted(factory.jobs, key=lambda j: (j.deadline_hour, j.release_hour, j.id)):
         choices = []
         for machine in job.eligible_machines:
-            for start in range(job.release_hour, job.deadline_hour-job.duration_hours+1):
+            for start in range(job.release_hour, job.deadline_hour - job.duration_hours + 1):
                 end = start + job.duration_hours
                 if any((machine, h) in occupied for h in range(start, end)):
                     continue
-                if any(o.machine_id == machine and start < o.end_hour and o.start_hour < end for o in factory.outages):
+                if any(
+                    o.machine_id == machine and start < o.end_hour and o.start_hour < end
+                    for o in factory.outages
+                ):
                     continue
-                if factory.power_caps_kw and any(factory.power_caps_kw[h] is not None and
-                        load[h]+power[machine] > factory.power_caps_kw[h] for h in range(start, end)):
+                if factory.power_caps_kw and any(
+                    factory.power_caps_kw[h] is not None
+                    and load[h] + power[machine] > factory.power_caps_kw[h]
+                    for h in range(start, end)
+                ):
                     continue
                 cost = power[machine] * sum(factory.prices_per_kwh[start:end], Decimal(0))
                 choices.append((cost, end, machine, start))

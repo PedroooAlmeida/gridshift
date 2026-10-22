@@ -1,26 +1,33 @@
+import unittest
 from dataclasses import replace
 from decimal import Decimal
 from types import SimpleNamespace
-import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 from gridshift.agent import execute, parse_llm, parse_offline
+from gridshift.evaluate import parser_evals
 from gridshift.events import Event
 from gridshift.models import Assignment, Factory, Job, Machine, Outage
 from gridshift.optimizer import OptimizationResult, optimize
 from gridshift.risk import simulate
 from gridshift.scheduling import fcfs, validate
-from gridshift.evaluate import parser_evals
 
 
 class EventTests(unittest.TestCase):
     def factory(self):
-        return Factory((Machine("m", 10),), (Job("j", 1, 0, 2, ("m",)),),
-                       (Decimal("0.10"), Decimal("0.50")))
+        return Factory(
+            (Machine("m", 10),), (Job("j", 1, 0, 2, ("m",)),), (Decimal("0.10"), Decimal("0.50"))
+        )
 
     def offer(self, reward="10"):
-        return Event(kind="demand_response", start_hour=0, end_hour=1, reduction_kw=10,
-                     reward_dollars=Decimal(reward), penalty_dollars=Decimal(20))
+        return Event(
+            kind="demand_response",
+            start_hour=0,
+            end_hour=1,
+            reduction_kw=10,
+            reward_dollars=Decimal(reward),
+            penalty_dollars=Decimal(20),
+        )
 
     def test_reward_must_cover_incremental_cost(self):
         accept = execute(self.factory(), self.offer())
@@ -54,8 +61,13 @@ class EventTests(unittest.TestCase):
         f = replace(self.factory(), outages=(Outage("m", 0, 1),))
         self.assertEqual(fcfs(f)[0].start_hour, 1)
         self.assertTrue(validate(f, (Assignment("j", "m", 0, 1),)))
-        self.assertEqual(execute(self.factory(), event.model_copy(update={"end_hour": 2})).action, "INFEASIBLE")
-        self.assertEqual(execute(self.factory(), event.model_copy(update={"machine_id": "unknown"})).action, "CLARIFY")
+        self.assertEqual(
+            execute(self.factory(), event.model_copy(update={"end_hour": 2})).action, "INFEASIBLE"
+        )
+        self.assertEqual(
+            execute(self.factory(), event.model_copy(update={"machine_id": "unknown"})).action,
+            "CLARIFY",
+        )
 
     def test_parser_regressions_and_no_tool_on_ambiguity(self):
         r = parser_evals()
@@ -66,15 +78,19 @@ class EventTests(unittest.TestCase):
             tool.assert_not_called()
 
     def test_schema_rejects_partial_actions_and_coercion(self):
-        for fields in [dict(kind="outage", machine_id="m", start_hour="0", end_hour=1),
-                       dict(kind="demand_response", start_hour=0, end_hour=1, reduction_kw=10, reward_dollars=1),
-                       dict(kind="clarify", clarification="Question", reduction_kw=5),
-                       dict(kind="outage", machine_id="m", start_hour=0, end_hour=1, extra="bad")]:
+        for fields in [
+            dict(kind="outage", machine_id="m", start_hour="0", end_hour=1),
+            dict(
+                kind="demand_response", start_hour=0, end_hour=1, reduction_kw=10, reward_dollars=1
+            ),
+            dict(kind="clarify", clarification="Question", reduction_kw=5),
+            dict(kind="outage", machine_id="m", start_hour=0, end_hour=1, extra="bad"),
+        ]:
             with self.assertRaises(ValueError):
                 Event(**fields)
 
     def test_unknown_is_not_infeasible(self):
-        unknown = OptimizationResult("UNKNOWN", None, None, None, .01)
+        unknown = OptimizationResult("UNKNOWN", None, None, None, 0.01)
         with patch("gridshift.agent.optimize", return_value=unknown):
             self.assertEqual(execute(self.factory(), self.offer()).action, "REVIEW")
 
@@ -101,7 +117,11 @@ class EventTests(unittest.TestCase):
         self.assertEqual(simulate(f, schedule), simulate(f, schedule))
 
     def test_outage_and_cap_schema(self):
-        for fields in [dict(power_caps_kw=(0,)), dict(power_caps_kw=(0, -1)),
-                       dict(outages=(Outage("no", 0, 1),)), dict(outages=(Outage("m", 1, 0),))]:
+        for fields in [
+            dict(power_caps_kw=(0,)),
+            dict(power_caps_kw=(0, -1)),
+            dict(outages=(Outage("no", 0, 1),)),
+            dict(outages=(Outage("m", 1, 0),)),
+        ]:
             with self.assertRaises(ValueError):
                 replace(self.factory(), **fields)

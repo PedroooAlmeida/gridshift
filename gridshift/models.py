@@ -1,4 +1,5 @@
 """Hours are integer boundaries; execution intervals are [start, end)."""
+
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional, Tuple
@@ -50,17 +51,26 @@ class Factory:
         for j in self.jobs:
             if any(type(v) is not int for v in (j.duration_hours, j.release_hour, j.deadline_hour)):
                 raise ValueError("Job times must be integer hours")
-            if not j.id or j.duration_hours <= 0 or not 0 <= j.release_hour < j.deadline_hour <= len(self.prices_per_kwh):
+            if (
+                not j.id
+                or j.duration_hours <= 0
+                or not 0 <= j.release_hour < j.deadline_hour <= len(self.prices_per_kwh)
+            ):
                 raise ValueError("Invalid job time window")
             if not j.eligible_machines or not set(j.eligible_machines) <= set(machine_ids):
                 raise ValueError("Every job needs known eligible machines")
         for outage in self.outages:
-            if (outage.machine_id not in machine_ids or
-                    type(outage.start_hour) is not int or type(outage.end_hour) is not int or
-                    not 0 <= outage.start_hour < outage.end_hour <= len(self.prices_per_kwh)):
+            if (
+                outage.machine_id not in machine_ids
+                or type(outage.start_hour) is not int
+                or type(outage.end_hour) is not int
+                or not 0 <= outage.start_hour < outage.end_hour <= len(self.prices_per_kwh)
+            ):
                 raise ValueError("Invalid machine outage")
-        if self.power_caps_kw and (len(self.power_caps_kw) != len(self.prices_per_kwh) or
-                any(c is not None and (type(c) is not int or c < 0) for c in self.power_caps_kw)):
+        if self.power_caps_kw and (
+            len(self.power_caps_kw) != len(self.prices_per_kwh)
+            or any(c is not None and (type(c) is not int or c < 0) for c in self.power_caps_kw)
+        ):
             raise ValueError("Power caps must be nonnegative integers for every hour")
         # A well-formed input may still be infeasible; the scheduler must report that.
 

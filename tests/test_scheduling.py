@@ -1,6 +1,7 @@
 import unittest
 from dataclasses import replace
 from decimal import Decimal
+
 from gridshift.models import Assignment, Factory, Job, Machine
 from gridshift.scenarios import demo_factory
 from gridshift.scheduling import BaselineFailure, energy_cost, fcfs, validate
@@ -8,9 +9,11 @@ from gridshift.scheduling import BaselineFailure, energy_cost, fcfs, validate
 
 class SchedulingTests(unittest.TestCase):
     def tiny(self):
-        return Factory((Machine("m", 10),),
-                       (Job("j", 2, 0, 3, ("m",)),),
-                       tuple(map(Decimal, ["0.10", "0.30", "0.50"])))
+        return Factory(
+            (Machine("m", 10),),
+            (Job("j", 2, 0, 3, ("m",)),),
+            tuple(map(Decimal, ["0.10", "0.30", "0.50"])),
+        )
 
     def test_demo_is_repeatable_and_feasible(self):
         f = demo_factory()
@@ -25,10 +28,14 @@ class SchedulingTests(unittest.TestCase):
 
     def test_validator_catches_corrupt_schedules(self):
         f = self.tiny()
-        for bad in [(), (Assignment("j", "m", -1, 1),),
-                    (Assignment("j", "m", 0, 1),), (Assignment("j", "other", 0, 2),),
-                    (Assignment("j", "m", 0, 2),) * 2,
-                    (Assignment("unknown", "m", 0, 2),)]:
+        for bad in [
+            (),
+            (Assignment("j", "m", -1, 1),),
+            (Assignment("j", "m", 0, 1),),
+            (Assignment("j", "other", 0, 2),),
+            (Assignment("j", "m", 0, 2),) * 2,
+            (Assignment("unknown", "m", 0, 2),),
+        ]:
             with self.subTest(schedule=bad):
                 self.assertTrue(validate(f, bad))
                 with self.assertRaises(ValueError):

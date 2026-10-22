@@ -1,6 +1,8 @@
-"""JSON exports never include API credentials or environment variables."""
+"""Convert model objects to JSON-compatible values, preserving Decimal precision."""
+
 from dataclasses import asdict, is_dataclass
 from decimal import Decimal
+
 from pydantic import BaseModel
 
 

@@ -29,13 +29,7 @@ The packaged 15-case offline grammar corpus is distinct from the packaged 30-cas
 natural-language corpus for optional live adapters. Semantic grading validates the
 whole Event schema and compares every semantic field; Decimal formatting differences
 are harmless. Unexpected fields, missing penalties and unnecessary clarification
-fail. Live model quality is **unmeasured**: no paid API calls were made for this audit.
-
-The deliberately flawed comparison parser defaults missing penalties to zero and
-accepts prefixes. Its 5/15 score versus the strict parser's 15/15 is an engineered
-regression example, not a historical deployed incident or general-language result.
-The injected accounting defect bills a job entirely at its start-hour price;
-independent per-hour accounting detects it separately from extraction errors.
+fail. Live model quality is **unmeasured**: live evaluations are opt-in and excluded from CI.
 
 The decision workflow distinguishes nominal profitability from a runtime-aware
 recommendation. Production failures and delivery failures are tracked separately;
@@ -67,7 +61,7 @@ python -m gridshift.evaluate --count 200 --output evals/latest.json
 python -m gridshift.calibration --output evals/calibration.json
 ```
 
-Scenario report schema is version 2; calibration schema is version 1. The dashboard
+Scenario report schema is version 3; calibration schema is version 1. The dashboard
 reads these reports. GitHub Actions runs correctness/UI tests and regenerates the
 scenario report. Optional paid `gridshift.evaluate_llm --provider anthropic` is
 excluded from CI and defaults. Its report is ignored by Git.
