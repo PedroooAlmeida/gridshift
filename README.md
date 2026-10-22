@@ -6,6 +6,10 @@ Production scheduling under time-varying electricity prices and uncertain job
 runtimes. GridShift uses OR-Tools CP-SAT to assign jobs to machines, evaluate
 demand-response offers, and compare the resulting schedules under runtime overruns.
 
+**Simple English version:** It plans when and where factory jobs should run to
+reduce electricity costs while meeting deadlines. It also checks what happens
+if jobs take longer than expected.
+
 ## Run
 
 Python 3.9+:
