@@ -67,3 +67,4 @@ The model uses one-hour slots, constant active power and independent bounded run
 overruns. It does not model setup costs, job dependencies or rolling execution.
 No factory or utility system is connected. Optional Anthropic/OpenAI adapters are
 mock-tested; live extraction accuracy has not been measured.
+Generated evaluation reports: `evals/latest.json` and `evals/calibration.json`.
