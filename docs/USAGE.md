@@ -22,6 +22,16 @@ stochastic plans using paired execution simulations. The displayed recommendatio
 must pass both risk and profit thresholds. Download the trace to inspect the parsed
 event, frozen reference, solver results, candidate schedules and policy statistics.
 
+The stochastic planner uses 24 simulated delay scenarios to choose one schedule.
+All available candidates—nominal, buffered and stochastic—are then assessed on
+500 separate scenarios, using the same job delays for a fair comparison. The app
+recommends the highest-average-profit candidate among those passing both checks;
+if none qualifies, it returns `REVIEW`.
+
+Each evaluation starts from the dashboard's factory configuration; events do not
+accumulate. The headline production metrics describe the normal plan. Read the
+results below the event controls for the event-specific schedule and costs.
+
 ## Optional language-model extraction
 
 Installations include Anthropic and OpenAI adapters. Select one in Event agent to
